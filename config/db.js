@@ -9,7 +9,8 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT,
     ssl: {
-        ca: fs.readFileSync('./certs/ca.pem') // Hanya membutuhkan CA Certificate
+        ca: fs.readFileSync('./certs/ca.pem'), // Hanya membutuhkan CA Certificate
+        rejectUnauthorized: false 
     }
 });
 
