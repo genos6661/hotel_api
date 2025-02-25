@@ -14,8 +14,6 @@ const hargaKamarRoutes = require('./routes/harga_kamar');
 const app = express();
 const port = 3000;
 
-require("dotenv").config();
-
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
