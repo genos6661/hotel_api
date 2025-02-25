@@ -4,7 +4,7 @@ const router = express.Router();
 
 // **1. Tampilkan Semua Kamar**
 router.get('/', (req, res) => {
-    db.query('SELECT k.*, kk.nama_kelas FROM kamar k join kelas_kamar kk on k.id_kelas = kk.noindex where k.deleted = 0 order by kode_kamar', (err, result) => {
+    db.query('SELECT hk.*, k.nama_kamar, kk.nama_kelas from harga_kamar hk left join kamar k on k.noindex = hk.kamar left join kelas_kamar kk on kk.noindex = hk.kelas_kamar', (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result);
     });
@@ -16,21 +16,23 @@ router.get('/datatable', (req, res) => {
     let search = req.query.search || '';           // search term
 
     // Query Count Total Data
-    let countQuery = "SELECT COUNT(*) AS total FROM kamar where deleted = 0";
+    let countQuery = "SELECT COUNT(*) AS total FROM harga_kamar";
     db.query(countQuery, (err, totalResult) => {
         if (err) throw err;
         let totalRecords = totalResult[0].total;
+        const today = new Date().toISOString().split('T')[0];
 
         // Query Data dengan LIMIT dan pencarian
         let query = `
-            SELECT k.*, kk.nama_kelas 
-            FROM kamar k 
-            JOIN kelas_kamar kk ON k.id_kelas = kk.noindex 
-            WHERE k.deleted = 0 AND (k.nama_kamar LIKE ? OR k.kode_kamar LIKE ? OR kk.nama_kelas LIKE ?)
-            ORDER BY k.kode_kamar
+            SELECT hk.*, kk.nama_kelas, k.nama_kamar, k.kode_kamar
+            FROM harga_kamar hk
+            LEFT JOIN kelas_kamar kk ON hk.kelas_kamar = kk.noindex 
+            LEFT JOIN kamar k on hk.kamar = k.noindex
+            WHERE hk.tanggal_akhir >= ? AND (kk.nama_kelas like ? OR k.nama_kamar like ? or hk.harga like ? or hk.tanggal_awal like ? or hk.tanggal_akhir like ?)
+            ORDER BY hk.tanggal_awal 
             LIMIT ?, ?`;
 
-        db.query(query, [`%${search}%`, `%${search}%`, `%${search}%`, offset, limit], (err, results) => {
+        db.query(query, [today, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, offset, limit], (err, results) => {
             if (err) throw err;
 
             // Kirim data ke DataTables
@@ -44,30 +46,39 @@ router.get('/datatable', (req, res) => {
     });
 });
 
-router.get("/alnod-select", (req, res) => {
-    let offset = parseInt(req.query.offset) || 0;
-    let limit = parseInt(req.query.limit) || 20;
-    let search = req.query.search ? `%${req.query.search}%` : "%";
+router.get("/select2", (req, res) => {
+    const search = req.query.search || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
 
-    const query = `
-        SELECT *
-        FROM kamar 
-        WHERE nama_kamar LIKE ? OR kode_kamar LIKE ?
-        ORDER BY kode_kamar ASC 
-        LIMIT ?, ?`;
+    // Query utama untuk mengambil data
+    const queryData = "SELECT noindex as id, nama_kamar AS text FROM kamar WHERE nama_kamar LIKE ? ORDER BY nama_kamar ASC LIMIT ? OFFSET ?";
+    const queryCount = "SELECT COUNT(*) as total FROM kamar WHERE nama_kamar LIKE ?";
 
-    db.query(query, [search, search, offset, limit], (err, results) => {
+    db.query(queryData, [`%${search}%`, limit, offset], (err, results) => {
         if (err) {
-            return res.status(500).json({ error: err.message });
+            return res.status(500).json({ error: "Terjadi kesalahan server" });
         }
-        res.json(results);
+
+        // Hitung jumlah total data untuk pagination
+        db.query(queryCount, [`%${search}%`], (err, countResult) => {
+            if (err) {
+                return res.status(500).json({ error: "Terjadi kesalahan server" });
+            }
+
+            const total = countResult[0].total;
+            const more = offset + limit < total;
+
+            res.json({ results, more });
+        });
     });
 });
 
 // **2. Tampilkan Kamar Berdasarkan Noindex**
 router.get('/id/:noindex', (req, res) => {
     const { noindex } = req.params;
-    db.query('SELECT k.*, kk.nama_kelas, kk.kode_kelas FROM kamar k join kelas_kamar kk on k.id_kelas =  kk.noindex WHERE k.noindex = ?', [noindex], (err, result) => {
+    db.query('SELECT k.*, kk.nama_kelas FROM kamar k join kelas_kamar kk on k.id_kelas =  kk.noindex WHERE k.noindex = ?', [noindex], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         if (result.length === 0) return res.status(404).json({ message: 'Kamar tidak ditemukan' });
         res.json(result[0]);

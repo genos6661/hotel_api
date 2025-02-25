@@ -24,7 +24,7 @@ router.get('/datatable', (req, res) => {
         // Query Data dengan LIMIT dan pencarian
         let query = `
             SELECT r.*, p.nama as nama_pelanggan from reservasi r 
-            join pelanggan p on p.noindex = r.id_pelanggan 
+            left join pelanggan p on p.noindex = r.id_pelanggan 
             WHERE r.status != 'deleted' and 
             (r.nomor LIKE ? OR r.tanggal LIKE ? OR p.nama LIKE ? OR r.tanggal_checkin LIKE ? OR r.tanggal_checkout LIKE ? OR total_harga LIKE ? OR status LIKE ?)
             ORDER BY r.nomor desc

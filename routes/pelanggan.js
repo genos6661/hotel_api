@@ -55,9 +55,9 @@ router.get('/id/:noindex', (req, res) => {
 
 // **3. Tambah Data Pelanggan**
 router.post('/', (req, res) => {
-    const { kode, nama, telepon, email, alamat, nik } = req.body;
-    const sql = 'INSERT INTO pelanggan (kode, nama, telepon, email, alamat, nik) VALUES (?, ?, ?, ?, ?, ?)';
-    db.query(sql, [kode, nama, telepon, email, alamat, nik], (err, result) => {
+    const { kode, nama, telepon, email, alamat, negara, nik } = req.body;
+    const sql = 'INSERT INTO pelanggan (kode, nama, telepon, email, alamat, negara, nik) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    db.query(sql, [kode, nama, telepon, email, alamat, negara, nik], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: 'Pelanggan berhasil ditambahkan', id: result.insertId });
     });
@@ -66,10 +66,10 @@ router.post('/', (req, res) => {
 // **4. Update Data Pelanggan**
 router.put('/:noindex', (req, res) => {
     const { noindex } = req.params;
-    const { kode, nama, telepon, email, alamat, nik } = req.body;
-    const sql = 'UPDATE pelanggan SET kode=?, nama=?, telepon=?, email=?, alamat=?, nik=? WHERE noindex=?';
-    db.query(sql, [kode, nama, telepon, email, alamat, nik, noindex], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+    const { kode, nama, telepon, email, alamat, negara, nik } = req.body;
+    const sql = 'UPDATE pelanggan SET kode=?, nama=?, telepon=?, email=?, alamat=?, negara=?, nik=? WHERE noindex=?';
+    db.query(sql, [kode, nama, telepon, email, alamat, negara, nik, noindex], (err, result) => {
+        if (err) return res.status(500).json({ message: err.message });
         if (result.affectedRows === 0) return res.status(404).json({ message: 'Pelanggan tidak ditemukan' });
         res.json({ message: 'Pelanggan berhasil diperbarui' });
     });
